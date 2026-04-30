@@ -72,8 +72,9 @@ h1,h2,h3{font-family:'Noto Serif TC',serif}
   @page{size:A4 portrait;margin:10mm}
 }
 #print-area{display:none}
-.rsheet{width:100%;padding:8mm 12mm;box-sizing:border-box;font-family:'Noto Serif TC',serif;border-bottom:2px dashed #ccc;background:#fff;color:#111;break-inside:avoid;page-break-inside:avoid}
-.rsheet:last-child{border-bottom:none}
+.rpage{page-break-after:always;break-after:page}
+.rpage:last-child{page-break-after:auto;break-after:auto}
+.rsheet{width:100%;padding:7mm 12mm;box-sizing:border-box;font-family:'Noto Serif TC',serif;background:#fff;color:#111;height:128mm;overflow:hidden}
 .rtitle{text-align:center;font-size:18pt;font-weight:900;letter-spacing:4px;margin-bottom:3mm;color:#8B0000}
 .rsub{text-align:center;font-size:9pt;color:#666;margin-bottom:5mm;letter-spacing:1px}
 .rrow{display:flex;gap:3mm;margin-bottom:2mm;font-size:10pt;line-height:1.8}
@@ -308,8 +309,9 @@ function renderList(){
   el.innerHTML=h;
 }
 
-function mkSheet(r,ds,op){
-  var h='<div class="rtitle">員林財德宮感謝狀</div>';
+function mkSheet(r,ds,op,copy){
+  var copyLabel=copy?'<div style="position:absolute;top:6mm;right:12mm;font-size:8pt;color:#aaa;font-family:Noto Sans TC,sans-serif">'+copy+'</div>':'';
+  var h='<div style="position:relative">'+copyLabel+'<div class="rtitle">員林財德宮感謝狀</div>';
   h+='<div class="rsub">天官五路武財神 誠心祈福 財運亨通</div>';
   h+='<div class="rrow"><span class="rlabel">芳名</span><span class="rval">'+r.name+'</span></div>';
   h+='<div class="rrow"><span class="rlabel">聯絡</span><span class="rval">'+r.phone+'</span></div>';
@@ -318,6 +320,7 @@ function mkSheet(r,ds,op){
   h+='<div class="rrow"><span class="rlabel">金額</span><span class="rval">新台幣 '+Number(r.amount).toLocaleString()+' 元整</span></div>';
   h+='<div class="rrow"><span class="rlabel">日期</span><span class="rval">中華民國 '+ds+'</span></div>';
   h+='<div class="rfoot"><div class="rsigs"><div class="rsig">宮主 江紀璿</div><div class="rsig">主任委員 劉宸佑</div><div class="rsig">管理委員會一同致謝</div></div><div class="rop">經辦：'+op+'</div></div>';
+  h+='</div>';
   return h;
 }
 
@@ -327,9 +330,13 @@ function doPrint(){
   var ds=(now.getFullYear()-1911)+'年'+(now.getMonth()+1)+'月'+now.getDate()+'日';
   var op=CU?CU.name:'--';
   var h='';
-  RECS.forEach(function(r,i){
-    h+='<div class="rsheet">'+mkSheet(r,ds,op)+'</div>';
-    if(i<RECS.length-1) h+='<div class="cutline">✂ 請沿虛線剪開 ✂</div>';
+  RECS.forEach(function(r){
+    // 每人一張紙，上半給信眾、下半留存
+    h+='<div class="rpage">';
+    h+='<div class="rsheet">'+mkSheet(r,ds,op,'正本')+'</div>';
+    h+='<div class="cutline">✂ 請沿虛線剪開 &nbsp; 上聯交信眾 &#xB7; 下聯廟方留存 &nbsp; ✂</div>';
+    h+='<div class="rsheet">'+mkSheet(r,ds,op,'副本')+'</div>';
+    h+='</div>';
   });
   document.getElementById('print-sheets').innerHTML=h;
   document.getElementById('print-area').style.display='block';
