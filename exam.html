@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>員林財德宮 - 廟務人員系統</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;700;900&family=Noto+Sans+TC:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--red:#8B0000;--redl:#DC143C;--gold:#FFD700;--dark:#1a1a1a;--card:#252525}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Noto Sans TC',sans-serif;background:var(--dark);color:#f0f0f0;min-height:100vh}
+h1,h2,h3{font-family:'Noto Serif TC',serif}
+.header{background:linear-gradient(135deg,var(--red),var(--redl));padding:1rem 1.5rem;display:flex;align-items:center;gap:1rem;box-shadow:0 4px 20px rgba(0,0,0,.5)}
+.header a{color:#fff;text-decoration:none;font-size:1.3rem}
+.header h1{color:#fff;font-size:1.1rem}
+.page{display:none;padding:2rem 1.5rem;max-width:700px;margin:0 auto}
+.page.active{display:block}
+.box{background:var(--card);border:2px solid rgba(255,215,0,.2);border-radius:16px;padding:2rem;max-width:400px;margin:3rem auto;text-align:center}
+.box h2{color:var(--gold);margin-bottom:.5rem;font-size:1.4rem}
+.box p{color:#aaa;margin-bottom:1.5rem;font-size:.88rem}
+.inp{width:100%;padding:.82rem 1rem;border-radius:8px;border:2px solid rgba(255,215,0,.2);background:rgba(0,0,0,.5);color:#fff;font-size:.95rem;font-family:'Noto Sans TC',sans-serif;margin-bottom:.9rem}
+.inp:focus{outline:none;border-color:var(--gold)}
+.sel{width:100%;padding:.82rem 1rem;border-radius:8px;border:2px solid rgba(255,215,0,.2);background:rgba(0,0,0,.5);color:#fff;font-size:.95rem;font-family:'Noto Sans TC',sans-serif;margin-bottom:.9rem}
+.sel:focus{outline:none;border-color:var(--gold)}
+.sel option{background:#252525}
+.btn{width:100%;padding:.88rem;background:linear-gradient(135deg,var(--red),var(--redl));color:#fff;border:none;border-radius:8px;font-size:.95rem;font-weight:600;cursor:pointer;font-family:'Noto Sans TC',sans-serif;margin-bottom:.7rem}
+.btn-gold{background:linear-gradient(135deg,#FFA500,var(--gold));color:#111}
+.btn-out{background:none;border:2px solid rgba(255,215,0,.3);color:var(--gold)}
+.err{color:var(--redl);font-size:.85rem;margin-bottom:.7rem;display:none}
+.wb{background:var(--card);border:2px solid rgba(255,215,0,.2);border-radius:16px;padding:2rem;margin-bottom:2rem;text-align:center}
+.wb h2{color:var(--gold);font-size:1.4rem;margin-bottom:.3rem}
+.wb p{color:#bbb;font-size:.88rem}
+.mgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:1rem;margin-bottom:2rem}
+.mc{background:var(--card);border:2px solid rgba(255,215,0,.15);border-radius:12px;padding:1.4rem;text-align:center;cursor:pointer;transition:all .25s;-webkit-tap-highlight-color:transparent}
+.mc:hover{border-color:var(--gold);transform:translateY(-3px)}
+.mc .ic{font-size:2rem;margin-bottom:.6rem;display:block}
+.mc h3{color:var(--gold);font-size:.9rem;margin-bottom:.2rem}
+.mc p{color:#777;font-size:.76rem}
+.mc.dis{opacity:.4;cursor:not-allowed;pointer-events:none}
+.pb{background:rgba(255,255,255,.1);border-radius:50px;height:7px;margin-bottom:1.8rem}
+.pf{background:linear-gradient(90deg,var(--red),var(--gold));height:100%;border-radius:50px;transition:width .3s}
+.qt{font-size:.98rem;line-height:1.8;margin-bottom:1.2rem;white-space:pre-wrap}
+.opts{display:flex;flex-direction:column;gap:.6rem;margin-bottom:1.6rem}
+.opt{padding:.82rem 1rem;border-radius:8px;border:2px solid rgba(255,255,255,.1);background:rgba(255,255,255,.03);cursor:pointer;text-align:left;font-size:.9rem;transition:all .2s;font-family:'Noto Sans TC',sans-serif;color:#f0f0f0}
+.opt:hover{border-color:rgba(255,215,0,.4)}
+.opt.sel2{border-color:var(--gold);background:rgba(255,215,0,.08)}
+.tfb{display:flex;gap:.9rem;margin-bottom:1.6rem}
+.tfbtn{flex:1;padding:.82rem;border-radius:8px;border:2px solid rgba(255,255,255,.1);background:rgba(255,255,255,.03);cursor:pointer;font-size:.95rem;font-family:'Noto Sans TC',sans-serif;color:#f0f0f0;transition:all .2s}
+.tfbtn.sel2{border-color:var(--gold);background:rgba(255,215,0,.08)}
+.fi2{width:100%;padding:.82rem 1rem;border-radius:8px;border:2px solid rgba(255,215,0,.2);background:rgba(0,0,0,.5);color:#fff;font-size:.95rem;font-family:'Noto Sans TC',sans-serif;margin-bottom:1.4rem}
+.fi2:focus{outline:none;border-color:var(--gold)}
+.ea{width:100%;padding:.82rem 1rem;border-radius:8px;border:2px solid rgba(255,215,0,.2);background:rgba(0,0,0,.5);color:#fff;font-size:.9rem;font-family:'Noto Sans TC',sans-serif;margin-bottom:1.4rem;min-height:130px;resize:vertical}
+.ea:focus{outline:none;border-color:var(--gold)}
+.navb{display:flex;gap:.8rem}
+.bprev{flex:1;padding:.82rem;border-radius:8px;border:2px solid rgba(255,215,0,.3);background:none;color:var(--gold);font-size:.9rem;cursor:pointer;font-family:'Noto Sans TC',sans-serif}
+.bnext{flex:2;padding:.82rem;border-radius:8px;border:none;background:linear-gradient(135deg,var(--red),var(--redl));color:#fff;font-size:.9rem;font-weight:600;cursor:pointer;font-family:'Noto Sans TC',sans-serif}
+.rbox{background:var(--card);border-radius:16px;padding:2rem;text-align:center;margin-bottom:1.5rem}
+.sc{width:125px;height:125px;border-radius:50%;margin:1rem auto;display:flex;align-items:center;justify-content:center;font-size:2rem;font-weight:900;font-family:'Noto Serif TC',serif;border:6px solid}
+.sc.pass{border-color:#4CAF50;color:#4CAF50;background:rgba(76,175,80,.1)}
+.sc.fail{border-color:var(--redl);color:var(--redl);background:rgba(220,20,60,.1)}
+.rl{font-size:1.3rem;font-weight:700;margin-bottom:.5rem}
+.rl.pass{color:#4CAF50}
+.rl.fail{color:var(--redl)}
+.rfm{background:var(--card);border:2px solid rgba(255,215,0,.18);border-radius:14px;padding:2rem}
+.rfm h2{color:var(--gold);margin-bottom:1.3rem;font-size:1.15rem}
+.fg{margin-bottom:1rem}
+.fl{display:block;margin-bottom:.3rem;color:var(--gold);font-size:.83rem;font-weight:500}
+.rq{color:var(--redl)}
+@media print{
+  body>*:not(#print-area){display:none!important}
+  #print-area{display:block!important}
+  @page{size:A4 portrait;margin:10mm}
+}
+#print-area{display:none}
+.rsheet{width:100%;padding:8mm 12mm;box-sizing:border-box;font-family:'Noto Serif TC',serif;border-bottom:2px dashed #ccc;background:#fff;color:#111;break-inside:avoid;page-break-inside:avoid}
+.rsheet:last-child{border-bottom:none}
+.rtitle{text-align:center;font-size:18pt;font-weight:900;letter-spacing:4px;margin-bottom:3mm;color:#8B0000}
+.rsub{text-align:center;font-size:9pt;color:#666;margin-bottom:5mm;letter-spacing:1px}
+.rrow{display:flex;gap:3mm;margin-bottom:2mm;font-size:10pt;line-height:1.8}
+.rlabel{color:#555;min-width:40px;flex-shrink:0}
+.rval{font-weight:700;border-bottom:1px solid #ccc;flex:1}
+.rfoot{margin-top:5mm;display:flex;justify-content:space-between;align-items:flex-end;font-size:9pt}
+.rsigs{display:flex;flex-direction:column;gap:2mm}
+.rsig{color:#333;letter-spacing:1px}
+.rop{text-align:right;color:#555;font-size:8.5pt}
+.cutline{text-align:center;font-size:8pt;color:#bbb;letter-spacing:3px;padding:2mm 0;background:#fff}
+</style>
+</head>
+<body>
+<div class="header">
+  <a href="index.html">&#8592;</a>
+  <h1>員林財德宮 &#xB7; 廟務人員系統</h1>
+</div>
+
+<div class="page active" id="page-setpw">
+  <div class="box">
+    <h2>註冊帳號</h2>
+    <p>輸入您的帳號並設定密碼</p>
+    <input class="inp" type="text" id="spw-a" placeholder="帳號（4碼）" maxlength="4">
+    <input class="inp" type="password" id="spw-p1" placeholder="設定密碼">
+    <input class="inp" type="password" id="spw-p2" placeholder="確認密碼">
+    <div class="err" id="spw-e"></div>
+    <button class="btn" onclick="setPW()">註冊並設定密碼</button>
+    <button class="btn btn-out" onclick="showPage('page-login')" style="margin-bottom:0">已有帳號，返回登入</button>
+  </div>
+</div>
+
+<div class="page" id="page-login">
+  <div class="box">
+    <h2>廟務人員登入</h2>
+    <p>請輸入您的帳號與密碼</p>
+    <input class="inp" type="text" id="la" placeholder="帳號（4碼）" maxlength="4">
+    <input class="inp" type="password" id="lp" placeholder="密碼">
+    <div class="err" id="le"></div>
+    <button class="btn" onclick="doLogin()">登入</button>
+    <hr style="border:none;border-top:1px solid rgba(255,215,0,.15);margin:.5rem 0">
+    <p style="color:#888;font-size:.8rem;margin-bottom:.6rem">首次使用？請先註冊帳號</p>
+    <button class="btn btn-out" onclick="showPage('page-setpw')" style="margin-bottom:0">註冊帳號</button>
+  </div>
+</div>
+
+<div class="page" id="page-menu">
+  <div class="wb">
+    <h2>歡迎，<span id="wname"></span></h2>
+    <p>請選擇功能項目</p>
+  </div>
+  <div class="mgrid">
+    <div class="mc" onclick="startExam('jc')">
+      <span class="ic">&#x1F697;</span>
+      <h3>淨車／過火儀式</h3>
+      <p>13題 &#xB7; 86分合格</p>
+    </div>
+    <div class="mc" onclick="startExam('yh')">
+      <span class="ic">&#x1F525;</span>
+      <h3>刈火民俗禮儀</h3>
+      <p>20題 &#xB7; 86分合格</p>
+    </div>
+    <div class="mc dis">
+      <span class="ic">&#x1F64F;</span>
+      <h3>收驚</h3>
+      <p>即將開放</p>
+    </div>
+    <div class="mc" onclick="showPage('page-receipt')">
+      <span class="ic">&#x1F4C4;</span>
+      <h3>受付作業登記</h3>
+      <p>列印感謝狀</p>
+    </div>
+  </div>
+  <div style="text-align:center">
+    <button class="btn btn-out" onclick="logout()" style="max-width:160px">登出</button>
+  </div>
+</div>
+
+<div class="page" id="page-exam">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.8rem">
+    <h2 style="color:var(--gold);font-size:1rem" id="etitle"></h2>
+    <span style="color:#aaa;font-size:.82rem" id="eqc"></span>
+  </div>
+  <div class="pb"><div class="pf" id="pf" style="width:0%"></div></div>
+  <div id="ec"></div>
+  <div class="navb">
+    <button class="bprev" id="bprev" onclick="prevQ()" style="display:none">上一題</button>
+    <button class="bnext" id="bnext" onclick="nextQ()">下一題</button>
+  </div>
+</div>
+
+<div class="page" id="page-result">
+  <div class="rbox">
+    <div class="sc" id="sc"></div>
+    <div class="rl" id="rl"></div>
+    <p id="rm" style="color:#bbb;margin-top:.5rem;font-size:.88rem"></p>
+  </div>
+  <button class="btn" onclick="showPage('page-menu')">返回主選單</button>
+  <button class="btn btn-gold" onclick="retryExam()">重新測驗</button>
+</div>
+
+<div class="page" id="page-receipt">
+  <div class="rfm">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.3rem">
+      <h2 style="margin-bottom:0">受付作業登記</h2>
+      <span id="rec-count" style="color:var(--gold);font-size:.85rem;background:rgba(255,215,0,.1);padding:.3rem .7rem;border-radius:50px">共 0 筆</span>
+    </div>
+    <div id="rec-list"></div>
+    <div style="background:rgba(255,215,0,.04);border:1px solid rgba(255,215,0,.18);border-radius:10px;padding:1.2rem;margin-bottom:1.2rem">
+      <div style="color:var(--gold);font-size:.85rem;font-weight:600;margin-bottom:.9rem">新增一筆</div>
+      <div class="fg"><label class="fl">姓名 <span class="rq">*</span></label><input class="inp" type="text" id="rn" placeholder="請輸入姓名" style="margin-bottom:0"></div>
+      <div class="fg"><label class="fl">電話 <span class="rq">*</span></label><input class="inp" type="tel" id="rph" placeholder="請輸入電話" style="margin-bottom:0"></div>
+      <div class="fg"><label class="fl">地址</label><input class="inp" type="text" id="rad" placeholder="請輸入地址（選填）" style="margin-bottom:0"></div>
+      <div class="fg"><label class="fl">品項 <span class="rq">*</span></label>
+        <select class="sel" id="rit" style="margin-bottom:0" onchange="onItem()">
+          <option value="">請選擇品項</option>
+          <option value="隨喜香油">隨喜香油</option>
+          <option value="補財庫250">補財庫 250元</option>
+          <option value="other">其他</option>
+        </select>
+      </div>
+      <div class="fg" id="rfg-other" style="display:none"><label class="fl">其他說明</label><input class="inp" type="text" id="rot" placeholder="請說明品項" style="margin-bottom:0"></div>
+      <div class="fg"><label class="fl">金額 <span class="rq">*</span></label><input class="inp" type="number" id="ram" placeholder="請輸入金額（元）" style="margin-bottom:0"></div>
+      <button class="btn btn-gold" onclick="addRec()" style="margin-top:.8rem;margin-bottom:0">加入清單</button>
+    </div>
+    <div style="display:flex;gap:.8rem">
+      <button class="btn btn-out" onclick="showPage('page-menu')" style="flex:1;margin-bottom:0">返回</button>
+      <button class="btn" id="btn-print" onclick="doPrint()" style="flex:2;margin-bottom:0" disabled>列印感謝狀</button>
+    </div>
+  </div>
+</div>
+
+<div id="print-area">
+  <div id="print-sheets"></div>
+</div>
+
+<script>
+var USERS = {'0125':{name:'江紀璿',pw:null},'0225':{name:'楊愷勳',pw:null}};
+(function(){
+  Object.keys(USERS).forEach(function(a){
+    var s = localStorage.getItem('pw_'+a);
+    if(s) USERS[a].pw = s;
+  });
+})();
+
+var CU=null, CE=null, CQ=0, ANS=[], ET='', RECS=[];
+
+function showPage(id){
+  document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
+  document.getElementById(id).classList.add('active');
+}
+
+function setPW(){
+  var a=document.getElementById('spw-a').value.trim();
+  var p1=document.getElementById('spw-p1').value;
+  var p2=document.getElementById('spw-p2').value;
+  var e=document.getElementById('spw-e');
+  e.style.display='none';
+  if(!USERS[a]){e.textContent='帳號不存在';e.style.display='block';return;}
+  if(!p1){e.textContent='請輸入密碼';e.style.display='block';return;}
+  if(p1!==p2){e.textContent='兩次密碼不一致';e.style.display='block';return;}
+  USERS[a].pw=p1;
+  localStorage.setItem('pw_'+a,p1);
+  alert('密碼設定成功！');
+  showPage('page-login');
+}
+
+function doLogin(){
+  var a=document.getElementById('la').value.trim();
+  var p=document.getElementById('lp').value;
+  var e=document.getElementById('le');
+  e.style.display='none';
+  if(!USERS[a]){e.textContent='帳號不存在';e.style.display='block';return;}
+  if(!USERS[a].pw){e.textContent='尚未設定密碼';e.style.display='block';return;}
+  if(USERS[a].pw!==p){e.textContent='密碼錯誤';e.style.display='block';return;}
+  CU={acc:a,name:USERS[a].name};
+  document.getElementById('wname').textContent=CU.name;
+  showPage('page-menu');
+}
+
+function logout(){
+  CU=null;
+  document.getElementById('la').value='';
+  document.getElementById('lp').value='';
+  showPage('page-login');
+}
+
+function onItem(){
+  var v=document.getElementById('rit').value;
+  document.getElementById('rfg-other').style.display=v==='other'?'block':'none';
+  if(v==='補財庫250') document.getElementById('ram').value='250';
+  else if(v!=='other') document.getElementById('ram').value='';
+}
+
+function addRec(){
+  var name=document.getElementById('rn').value.trim();
+  var phone=document.getElementById('rph').value.trim();
+  var addr=document.getElementById('rad').value.trim();
+  var itv=document.getElementById('rit').value;
+  var item=itv==='other'?document.getElementById('rot').value.trim():(itv==='補財庫250'?'補財庫 250元':itv);
+  var amount=document.getElementById('ram').value.trim();
+  if(!name||!phone||!item||!amount){alert('請填寫姓名、電話、品項及金額！');return;}
+  RECS.push({name:name,phone:phone,addr:addr,item:item,amount:amount});
+  document.getElementById('rn').value='';
+  document.getElementById('rph').value='';
+  document.getElementById('rad').value='';
+  document.getElementById('rit').value='';
+  document.getElementById('rot').value='';
+  document.getElementById('ram').value='';
+  document.getElementById('rfg-other').style.display='none';
+  renderList();
+}
+
+function delRec(i){
+  RECS.splice(i,1);
+  renderList();
+}
+
+function renderList(){
+  var el=document.getElementById('rec-list');
+  var btn=document.getElementById('btn-print');
+  document.getElementById('rec-count').textContent='共 '+RECS.length+' 筆';
+  btn.disabled=RECS.length===0;
+  if(RECS.length===0){el.innerHTML='';return;}
+  var h='';
+  RECS.forEach(function(r,i){
+    h+='<div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,215,0,.12);border-radius:8px;padding:.8rem 1rem;margin-bottom:.55rem;display:flex;justify-content:space-between;align-items:center">';
+    h+='<div><div style="font-weight:600;font-size:.92rem">'+r.name+'</div>';
+    h+='<div style="color:var(--gold);font-size:.8rem">'+r.item+' NT$'+Number(r.amount).toLocaleString()+'</div></div>';
+    h+='<button onclick="delRec('+i+')" style="background:none;border:1px solid rgba(220,20,60,.4);color:#DC143C;border-radius:6px;padding:.3rem .6rem;cursor:pointer;font-size:.8rem;font-family:\'Noto Sans TC\',sans-serif">刪除</button>';
+    h+='</div>';
+  });
+  el.innerHTML=h;
+}
+
+function mkSheet(r,ds,op){
+  var h='<div class="rtitle">員林財德宮感謝狀</div>';
+  h+='<div class="rsub">天官五路武財神 誠心祈福 財運亨通</div>';
+  h+='<div class="rrow"><span class="rlabel">芳名</span><span class="rval">'+r.name+'</span></div>';
+  h+='<div class="rrow"><span class="rlabel">聯絡</span><span class="rval">'+r.phone+'</span></div>';
+  if(r.addr) h+='<div class="rrow"><span class="rlabel">地址</span><span class="rval">'+r.addr+'</span></div>';
+  h+='<div class="rrow"><span class="rlabel">品項</span><span class="rval">'+r.item+'</span></div>';
+  h+='<div class="rrow"><span class="rlabel">金額</span><span class="rval">新台幣 '+Number(r.amount).toLocaleString()+' 元整</span></div>';
+  h+='<div class="rrow"><span class="rlabel">日期</span><span class="rval">中華民國 '+ds+'</span></div>';
+  h+='<div class="rfoot"><div class="rsigs"><div class="rsig">宮主 江紀璿</div><div class="rsig">主任委員 劉宸佑</div><div class="rsig">管理委員會一同致謝</div></div><div class="rop">經辦：'+op+'</div></div>';
+  return h;
+}
+
+function doPrint(){
+  if(RECS.length===0){alert('請先加入至少一筆資料！');return;}
+  var now=new Date();
+  var ds=(now.getFullYear()-1911)+'年'+(now.getMonth()+1)+'月'+now.getDate()+'日';
+  var op=CU?CU.name:'--';
+  var h='';
+  RECS.forEach(function(r,i){
+    h+='<div class="rsheet">'+mkSheet(r,ds,op)+'</div>';
+    if(i<RECS.length-1) h+='<div class="cutline">✂ 請沿虛線剪開 ✂</div>';
+  });
+  document.getElementById('print-sheets').innerHTML=h;
+  document.getElementById('print-area').style.display='block';
+  window.print();
+  document.getElementById('print-area').style.display='none';
+}
+
+var JC_Q = [
+  {t:'mc',q:'1. 淨車儀式開始前，車主祈求內容需包含哪些要素？',os:['(A) 姓名、地址、職業、來意','(B) 姓名、地址、生辰、來意','(C) 姓名、電話、生辰、來意','(D) 姓名、地址、生辰、車牌號碼'],a:1,p:5},
+  {t:'mc',q:'2. 點淨香爐後，需請示什麼？',os:['(A) 請示車主的行車方向','(B) 請示哪尊令旗要幫忙淨車','(C) 請示供品是否齊全','(D) 請示燒金紙的數量'],a:1,p:5},
+  {t:'mc',q:'3. 淨車所需物品中，以下何者不包含在內？',os:['(A) 紅菱','(B) 平安符','(C) 符紙','(D) 令旗'],a:3,p:5},
+  {t:'mc',q:'4. 令旗撥除穢氣的方向為何？',os:['(A) 由下而上','(B) 由左而右','(C) 由上而下','(D) 由右而左'],a:2,p:5},
+  {t:'mc',q:'5. 淨爐燻車時，晃動的方式為何？',os:['(A) 由上而下，大力搖動','(B) 由下而上，輕輕晃動','(C) 左右來回，快速搖動','(D) 固定不動，讓煙自然飄散'],a:1,p:5},
+  {t:'mc',q:'6. 淨爐燻車從哪個部位開始？',os:['(A) 車尾','(B) 車頂','(C) 車頭','(D) 主駕駛座'],a:2,p:5},
+  {t:'mc',q:'7. 淨爐完成後，金紙與淨爐應放置於何處？',os:['(A) 車頂','(B) 後車廂','(C) 主駕與副駕中間，淨爐放於金紙上','(D) 車前擋風玻璃下方'],a:2,p:5},
+  {t:'mc',q:'8. 新車過火儀式中，留下來不燒的金紙為何？',os:['(A) 四方金一只','(B) 壽金一小只','(C) 刈金一小只','(D) 天金一小只'],a:1,p:5},
+  {t:'mc',q:'9. 新車過火時，車主過火的方式為何？',os:['(A) 緩慢駕車通過','(B) 倒車通過火堆','(C) 快速駕車通過','(D) 停車靜候熄滅'],a:2,p:5},
+  {t:'tf',q:'10. 淨爐燻車時，車內也需要燻過，不可遺漏。',a:true,p:5},
+  {t:'tf',q:'11. 新車過火儀式中，符紙需與壽金一小只一起在車前燒化。',a:true,p:5},
+  {t:'fi',q:'12. 腳還在燃燒的金紙完事後，應放置於車＿＿，並保持適當距離。',a:'前',p:5},
+  {t:'es',q:'13.【素養題】\n請依照正確順序排列下列淨車步驟：\n甲、將令旗請下樓\n乙、淨爐燻車由車頭開始\n丙、車主祈求\n丁、令旗撥除穢氣\n戊、點淨香爐請示令旗\n己、開車門點火淨車\n庚、物品請回五樓\n辛、（新車）快速過火\n\n並說明若操作錯誤可能造成的影響。',a:'丙→戊→甲→己→丁→乙→庚→辛',p:20}
+];
+
+var YH_Q = [
+  {t:'mc',q:'1. 「刈」作為動詞，其意思最接近下列何者？',os:['(A) 搬運','(B) 割、分開','(C) 點燃','(D) 祭祀'],a:1,p:5},
+  {t:'mc',q:'2. 下列哪一部文獻最早記載「進香」一詞？',os:['(A) 《臺灣雜記》','(B) 《陶庵夢憶》','(C) 《帝京景物略》','(D) 《安平縣雜記》'],a:2,p:5},
+  {t:'mc',q:'3. 清領時期，北港媽祖曾前往哪座廟宇進香，參與者達數萬人？',os:['(A) 大甲鎮瀾宮','(B) 臺南大天后宮','(C) 新港奉天宮','(D) 北港朝天宮'],a:1,p:5},
+  {t:'mc',q:'4. 刈火儀式著重割取的兩項核心為何？',os:['(A) 神像與令旗','(B) 符咒與印信','(C) 香火與靈力','(D) 金紙與疏文'],a:2,p:5},
+  {t:'mc',q:'5. 「火、靈、神」三者共同具備的性質為何？',os:['(A) 永恆不滅','(B) 傳遞與分散','(C) 集中與凝聚','(D) 固定與不變'],a:1,p:5},
+  {t:'mc',q:'6. 下列何者為「分香」或「分靈」的正確描述？',os:['(A) 信徒自行在家中點火供奉','(B) 神明神威顯赫，民眾前往祈求香火','(C) 廟宇之間互相交換神像','(D) 進香團徒步前往外縣市朝聖'],a:1,p:5},
+  {t:'mc',q:'7. 白沙屯媽祖進香的傳統大約有多少年歷史？',os:['(A) 約一百年','(B) 約一百五十年','(C) 約兩百年','(D) 約兩百五十年'],a:2,p:5},
+  {t:'mc',q:'8. 白沙屯媽祖進香，以下何者不包含在跨越的溪流？',os:['(A) 大安溪','(B) 淡水河','(C) 濁水溪','(D) 大肚溪'],a:1,p:5},
+  {t:'mc',q:'9. 關於白沙屯媽祖進香，下列何者正確？',os:['(A) 有固定停駕地點','(B) 有固定行進路線','(C) 起駕日可事先得知','(D) 全程以車輛代步'],a:2,p:5},
+  {t:'mc',q:'10. 刈火儀式中，主事者取火的來源為何？',os:['(A) 信徒自帶的蠟燭','(B) 長明燈','(C) 金爐中的餘火','(D) 祖廟的廚房灶火'],a:1,p:5},
+  {t:'tf',q:'11. 「進香」與「刈香」在民間習慣上，有嚴格區分有無分香關係。',a:false,p:5},
+  {t:'tf',q:'12. 神明進香返回地方後，會直接安座於廟內，不對外巡繞。',a:false,p:5},
+  {t:'tf',q:'13. 刈火儀式中，掬取香灰放入香爐的動作需重複三次。',a:true,p:5},
+  {t:'tf',q:'14. 白沙屯媽祖進香的目的地是臺南大天后宮。',a:false,p:5},
+  {t:'tf',q:'15. 「交香」是指將雙方香爐並置，同時燒香使香煙纏繞相交的儀式。',a:true,p:5},
+  {t:'fi',q:'16. 刈火儀式中，香灰放回香擔後，需加上＿＿，以保護香火。',a:'封條',p:5},
+  {t:'fi',q:'17. 進香返回廟中後，神殿須垂下＿色帳幔。',a:'黃',p:5},
+  {t:'fi',q:'18. 進香神像返回本廟後，須進行「＿＿」，將香火添置於各個香爐。',a:'添火',p:5},
+  {t:'fi',q:'19. 分靈廟為確保神明靈威，需定期前往＿＿進謁，再次割引香火。',a:'祖廟',p:5},
+  {t:'fi',q:'20. 神明進香返回地方後，會先＿＿街道，使地方信眾分沾福氣。',a:'巡繞',p:5}
+];
+
+var DB = {jc:{title:'淨車／過火儀式測驗',qs:JC_Q}, yh:{title:'刈火民俗禮儀測驗',qs:YH_Q}};
+
+function startExam(type){
+  ET=type;
+  CE=JSON.parse(JSON.stringify(DB[type]));
+  var norm=CE.qs.slice(0,-1), es=CE.qs.slice(-1);
+  for(var i=norm.length-1;i>0;i--){
+    var j=Math.floor(Math.random()*(i+1));
+    var tmp=norm[i];norm[i]=norm[j];norm[j]=tmp;
+  }
+  CE.qs=norm.concat(es);
+  CQ=0; ANS=new Array(CE.qs.length).fill(null);
+  document.getElementById('etitle').textContent=CE.title;
+  showPage('page-exam');
+  renderQ();
+}
+
+function renderQ(){
+  var q=CE.qs[CQ], tot=CE.qs.length;
+  document.getElementById('pf').style.width=(CQ/tot*100)+'%';
+  document.getElementById('eqc').textContent=(CQ+1)+' / '+tot;
+  var h='';
+  if(q.t==='mc'){
+    h='<div class="qt">'+q.q+'</div><div class="opts">';
+    q.os.forEach(function(o,i){
+      h+='<button class="opt'+(ANS[CQ]===i?' sel2':'')+'" onclick="sMC('+i+')">'+o+'</button>';
+    });
+    h+='</div>';
+  } else if(q.t==='tf'){
+    h='<div class="qt">'+q.q+'</div><div class="tfb">';
+    h+='<button class="tfbtn'+(ANS[CQ]===true?' sel2':'')+'" onclick="sTF(true)">✓ 是</button>';
+    h+='<button class="tfbtn'+(ANS[CQ]===false?' sel2':'')+'" onclick="sTF(false)">✗ 否</button>';
+    h+='</div>';
+  } else if(q.t==='fi'){
+    h='<div class="qt">'+q.q+'</div>';
+    h+='<input class="fi2" type="text" value="'+(ANS[CQ]||'')+'" placeholder="請填寫答案" oninput="ANS[CQ]=this.value">';
+  } else {
+    h='<div class="qt">'+q.q+'</div>';
+    h+='<textarea class="ea" placeholder="請在此作答..." oninput="ANS[CQ]=this.value">'+(ANS[CQ]||'')+'</textarea>';
+  }
+  document.getElementById('ec').innerHTML=h;
+  document.getElementById('bprev').style.display=CQ>0?'block':'none';
+  document.getElementById('bnext').textContent=CQ===CE.qs.length-1?'提交考卷':'下一題';
+}
+
+function sMC(i){ANS[CQ]=i;document.querySelectorAll('.opt').forEach(function(el,x){el.classList.toggle('sel2',x===i);});}
+function sTF(v){ANS[CQ]=v;document.querySelectorAll('.tfbtn').forEach(function(el,i){el.classList.toggle('sel2',(i===0)===v);});}
+function prevQ(){if(CQ>0){CQ--;renderQ();}}
+function nextQ(){
+  var q=CE.qs[CQ];
+  if((ANS[CQ]===null||ANS[CQ]==='')&&q.t!=='es'){alert('請先作答！');return;}
+  if(CQ===CE.qs.length-1){submitExam();return;}
+  CQ++;renderQ();
+}
+
+function submitExam(){
+  var tot=0,earn=0,det=[];
+  CE.qs.forEach(function(q,i){
+    tot+=q.p;
+    var ua=ANS[i],ok=false;
+    if(q.t==='mc'){ok=ua===q.a;if(ok)earn+=q.p;det.push({q:q.q.split('\n')[0],ok:ok,ua:q.os[ua]||'未作答',ca:q.os[q.a]});}
+    else if(q.t==='tf'){ok=ua===q.a;if(ok)earn+=q.p;det.push({q:q.q,ok:ok,ua:ua===true?'是':(ua===false?'否':'未作答'),ca:q.a?'是':'否'});}
+    else if(q.t==='fi'){ok=(ua||'').trim()===q.a;if(ok)earn+=q.p;det.push({q:q.q,ok:ok,ua:(ua||'未作答'),ca:q.a});}
+    else{earn+=Math.floor(q.p*0.5);det.push({q:'素養題',ok:'partial',ua:(ua||'未作答'),ca:q.a});}
+  });
+  var score=Math.round(earn/tot*100), pass=score>=86;
+  showPage('page-result');
+  var c=document.getElementById('sc');
+  c.textContent=score+'分';c.className='sc '+(pass?'pass':'fail');
+  var l=document.getElementById('rl');
+  l.textContent=pass?'合格':'不合格';l.className='rl '+(pass?'pass':'fail');
+  document.getElementById('rm').textContent=pass?'恭喜通過考核！成績已回傳至管理員信箱。':'未達86分，請重新複習後再次應試。';
+  sendR(score,pass,det);
+  if(!pass) window._le=ET;
+}
+
+function sendR(score,pass,det){
+  var name=CU?CU.name:'--', exam=CE.title, now=new Date().toLocaleString('zh-TW');
+  var body='考核人員：'+name+'\n科目：'+exam+'\n時間：'+now+'\n成績：'+score+'分\n結果：'+(pass?'合格':'不合格')+'\n\n';
+  det.forEach(function(d,i){body+='['+(i+1)+'] '+d.q+'\n作答：'+d.ua+' 正解：'+d.ca+' '+(d.ok===true?'正確':(d.ok==='partial'?'素養':'錯誤'))+'\n\n';});
+  var fd=new FormData();
+  fd.append('_subject','【員林財德宮考核】'+name+' '+exam+' '+score+'分 '+(pass?'合格':'不合格'));
+  fd.append('_captcha','false');
+  fd.append('考核人員',name);fd.append('科目',exam);fd.append('時間',now);
+  fd.append('成績',score+'分');fd.append('結果',pass?'合格':'不合格');fd.append('明細',body);
+  fetch('https://formsubmit.co/ajax/yuanlinciadetemple@gmail.com',{method:'POST',body:fd,headers:{'Accept':'application/json'}}).catch(function(){});
+}
+
+function retryExam(){startExam(window._le||ET);}
+showPage('page-login');
+</script>
+</body>
+</html>
