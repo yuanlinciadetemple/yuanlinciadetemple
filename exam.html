@@ -231,6 +231,8 @@ h1,h2,h3{font-family:'Noto Serif TC',serif}
 </div>
 
 <script>
+var API = 'https://script.google.com/macros/s/AKfycbxAaBIhjuETBsxWfLUj_1vbLfgWTLMW_-w1InuB5PRp5NJr2kSNTQpMeCkx2d41AHPwCg/exec';
+
 var USERS = {
   '0125':{name:'江紀璿',title:'宮主',unit:'宮務中心',pw:null},
   '0225':{name:'楊愷勳',title:'行政組長',unit:'信徒大會',pw:null},
@@ -330,6 +332,37 @@ function adminClearPW(){
   alert('帳號已停用');
   onSelectAcc();
 }
+// ── API 呼叫 ──
+var _members=[], _orders=[], _expenses=[];
+
+function apiCall(action, data, cb) {
+  data = data || {};
+  data.action = action;
+  // 讀取操作用 JSONP
+  var cbName = 'cb_' + Date.now();
+  var url = API + '?data=' + encodeURIComponent(JSON.stringify(data)) + '&callback=' + cbName;
+  window[cbName] = function(res) {
+    delete window[cbName];
+    var s = document.getElementById('jsonp_'+cbName);
+    if(s) s.remove();
+    if(cb) cb(res && res.success ? res.data : null);
+  };
+  var s = document.createElement('script');
+  s.id = 'jsonp_' + cbName;
+  s.src = url;
+  s.onerror = function() {
+    delete window[cbName];
+    s.remove();
+    if(cb) cb(null);
+  };
+  document.head.appendChild(s);
+  // 寫入操作用 no-cors POST
+  if(['saveMember','deleteMember','saveOrder','saveExpense','reviewExpense'].indexOf(action)>=0){
+    var wdata = JSON.parse(JSON.stringify(data));
+    fetch(API, {method:'POST',mode:'no-cors',body:JSON.stringify(wdata),headers:{'Content-Type':'application/json'}}).catch(function(){});
+  }
+}
+
 function showPage(id){
   document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
   document.getElementById(id).classList.add('active');
@@ -344,7 +377,7 @@ function doLogin(){
   if(!USERS[a]){e.textContent='帳號不存在';e.style.display='block';return;}
   if(!USERS[a].pw){e.textContent='尚未設定密碼';e.style.display='block';return;}
   if(USERS[a].pw!==p){e.textContent='密碼錯誤';e.style.display='block';return;}
-  CU={acc:a,name:USERS[a].name};
+  CU={acc:a,name:USERS[a].name,title:USERS[a].title,unit:USERS[a].unit};
   document.getElementById('wname').textContent=CU.title+'　'+CU.name;
   var ap=document.getElementById('admin-panel'); if(ap) ap.style.display=a==='0125'?'block':'none';
   showPage('page-menu');
@@ -575,6 +608,227 @@ function sendR(score,pass,det){
 }
 
 function retryExam(){startExam(window._le||ET);}
+
+// ── 信徒資料 ──
+var _editMember = null;
+var MEM_FIELDS = [
+  ['代號','代號'],['單位','單位'],['職稱','職稱'],['姓名','姓名'],
+  ['性別','性別'],['身分證','身分證'],['電話','電話'],['住家電話','住家電話'],
+  ['生肖','生肖'],['公司','公司'],['郵遞區號','郵遞區號'],
+  ['通訊地址','通訊地址'],['公司地址','公司地址'],
+  ['國曆西元','國曆西元'],['國曆月','國曆月'],['國曆日','國曆日'],['國曆時','國曆時'],
+  ['農曆西元','農曆西元'],['農曆月','農曆月'],['農曆日','農曆日'],['農曆時','農曆時'],
+  ['天干1','天干1'],['天干2','天干2'],['天干3','天干3'],['吉凶','吉凶']
+];
+
+function openMembers(){
+  document.getElementById('modal-members').style.display='block';
+  document.getElementById('mem-list').innerHTML='<div style="text-align:center;color:#aaa;padding:2rem">載入中...</div>';
+  apiCall('getMembers',{},function(data){
+    _members=data||[];
+    renderMembers(_members);
+  });
+}
+
+function filterMembers(){
+  var q=document.getElementById('mem-search').value.toLowerCase();
+  if(!q){renderMembers(_members);return;}
+  renderMembers(_members.filter(function(m){
+    return (m['姓名']||'').includes(q)||(m['電話']||'').includes(q)||(m['代號']||'').includes(q);
+  }));
+}
+
+function renderMembers(list){
+  var el=document.getElementById('mem-list');
+  if(!list||list.length===0){el.innerHTML='<div style="text-align:center;color:#aaa;padding:2rem">無資料</div>';return;}
+  var h='';
+  list.forEach(function(m){
+    var ms=JSON.stringify(m).replace(/'/g,"\'").replace(/"/g,'&quot;');
+    h+='<div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,215,0,.12);border-radius:8px;padding:.8rem 1rem;margin-bottom:.5rem;display:flex;justify-content:space-between;align-items:center;cursor:pointer" onclick="openMemberForm(this)"  data-m="'+ms+'">';
+    h+='<div><div style="font-weight:600;font-size:.92rem">['+( m['代號']||'')+'] '+(m['職稱']||'')+' '+(m['姓名']||'')+'</div>';
+    h+='<div style="color:#888;font-size:.8rem">'+(m['單位']||'')+' | '+(m['電話']||'')+'</div></div>';
+    h+='<span style="color:var(--gold);font-size:.85rem">編輯 ›</span></div>';
+  });
+  el.innerHTML=h;
+}
+
+function openMemberForm(el){
+  var m=el?JSON.parse(el.dataset.m.replace(/&quot;/g,'"')):null;
+  _editMember=m;
+  document.getElementById('edit-title').textContent=m?'編輯信徒資料':'新增信徒';
+  document.getElementById('btn-del-member').style.display=m?'block':'none';
+  var ff=document.getElementById('member-form-fields');
+  var h='';
+  MEM_FIELDS.forEach(function(f){
+    var val=m?(m[f[0]]||''):'';
+    var fw=['通訊地址','公司地址'].indexOf(f[0])>=0?'grid-column:1/-1':'';
+    h+='<div style="'+fw+'"><label class="fl">'+f[1]+'</label>';
+    h+='<input class="inp" data-field="'+f[0]+'" value="'+String(val).replace(/"/g,'&quot;')+'" style="margin-bottom:0"></div>';
+  });
+  ff.innerHTML=h;
+  document.getElementById('modal-member-edit').style.display='block';
+}
+
+function openNewMember(){
+  _editMember=null;
+  document.getElementById('edit-title').textContent='新增信徒';
+  document.getElementById('btn-del-member').style.display='none';
+  var ff=document.getElementById('member-form-fields');
+  var h='';
+  MEM_FIELDS.forEach(function(f){
+    var fw=['通訊地址','公司地址'].indexOf(f[0])>=0?'grid-column:1/-1':'';
+    h+='<div style="'+fw+'"><label class="fl">'+f[1]+'</label>';
+    h+='<input class="inp" data-field="'+f[0]+'" value="" style="margin-bottom:0"></div>';
+  });
+  ff.innerHTML=h;
+  document.getElementById('modal-member-edit').style.display='block';
+}
+
+function saveMemberForm(){
+  var member={};
+  document.querySelectorAll('#member-form-fields input').forEach(function(el){
+    member[el.dataset.field]=el.value.trim();
+  });
+  if(!member['姓名']||!member['代號']){alert('代號和姓名為必填！');return;}
+  member['登錄人']=CU?CU.acc:'';
+  apiCall('saveMember',{member:member},function(){});
+  document.getElementById('modal-member-edit').style.display='none';
+  alert('✅ 已送出儲存！');
+  setTimeout(function(){openMembers();},1000);
+}
+
+function deleteMemberForm(){
+  if(!_editMember)return;
+  if(!confirm('確定刪除 '+_editMember['姓名']+' 的資料？'))return;
+  apiCall('deleteMember',{code:_editMember['代號']},function(){});
+  document.getElementById('modal-member-edit').style.display='none';
+  alert('已刪除');
+  setTimeout(function(){openMembers();},1000);
+}
+
+// ── 歷史訂單 ──
+var _orders=[];
+function openOrders(){
+  document.getElementById('modal-orders').style.display='block';
+  document.getElementById('order-list').innerHTML='<div style="text-align:center;color:#aaa;padding:2rem">載入中...</div>';
+  var sel=document.getElementById('order-filter');
+  sel.innerHTML='<option value="">全部廟務人員</option>';
+  Object.keys(USERS).forEach(function(acc){
+    sel.innerHTML+='<option value="'+acc+'">'+USERS[acc].title+' '+USERS[acc].name+'</option>';
+  });
+  apiCall('getOrders',{code:'0125'},function(data){
+    _orders=data||[];
+    renderOrders(_orders);
+  });
+}
+
+function filterOrders(){
+  var code=document.getElementById('order-filter').value;
+  renderOrders(code?_orders.filter(function(o){return String(o['經辦代號'])===code;}):_orders);
+}
+
+function renderOrders(list){
+  var el=document.getElementById('order-list');
+  if(!list||list.length===0){el.innerHTML='<div style="text-align:center;color:#aaa;padding:2rem">無訂單紀錄</div>';return;}
+  var h='';
+  list.forEach(function(o){
+    h+='<div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,215,0,.1);border-radius:8px;padding:.8rem 1rem;margin-bottom:.5rem">';
+    h+='<div style="display:flex;justify-content:space-between"><span style="font-weight:600">'+(o['信眾姓名']||'')+'</span><span style="color:var(--gold)">NT$ '+Number(o['金額']||0).toLocaleString()+'</span></div>';
+    h+='<div style="color:#888;font-size:.8rem;margin-top:.25rem">'+(o['品項']||'')+' | 經辦：'+(o['經辦職稱']||'')+' '+(o['經辦姓名']||'')+' | '+(o['時間']||'')+'</div>';
+    h+='</div>';
+  });
+  el.innerHTML=h;
+}
+
+// ── 經費申請 ──
+var _expenses=[];
+function openExpenses(){
+  document.getElementById('modal-expenses').style.display='block';
+  document.getElementById('expense-list').innerHTML='<div style="text-align:center;color:#aaa;padding:2rem">載入中...</div>';
+  apiCall('getExpenses',{},function(data){
+    _expenses=data||[];
+    renderExpenses(_expenses);
+  });
+}
+
+function openExpenseForm(){
+  document.getElementById('ex-applicant').value=CU?(CU.title+' '+CU.name):'';
+  document.getElementById('ex-phone').value='';
+  document.getElementById('ex-reason').value='';
+  document.getElementById('ex-detail').value='';
+  document.getElementById('ex-amount').value='';
+  document.getElementById('modal-expense-form').style.display='block';
+}
+
+function submitExpense(){
+  var reason=document.getElementById('ex-reason').value.trim();
+  var amount=document.getElementById('ex-amount').value.trim();
+  if(!reason||!amount){alert('請填寫申請事由和金額！');return;}
+  apiCall('saveExpense',{expense:{
+    code:CU?CU.acc:'',
+    titleName:CU?(CU.title+' '+CU.name):'',
+    phone:document.getElementById('ex-phone').value.trim(),
+    reason:reason,
+    detail:document.getElementById('ex-detail').value.trim(),
+    amount:amount
+  }},function(){});
+  document.getElementById('modal-expense-form').style.display='none';
+  alert('✅ 申請已送出！');
+}
+
+function renderExpenses(list){
+  var el=document.getElementById('expense-list');
+  if(!list||list.length===0){el.innerHTML='<div style="text-align:center;color:#aaa;padding:2rem">無申請紀錄</div>';return;}
+  var h='';
+  list.forEach(function(ex){
+    var sc=ex['核銷狀況']==='核准'?'#4CAF50':ex['核銷狀況']==='駁回'?'#DC143C':'#FFD700';
+    var exs=JSON.stringify(ex).replace(/'/g,"\'").replace(/"/g,'&quot;');
+    h+='<div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,215,0,.1);border-radius:8px;padding:.9rem 1rem;margin-bottom:.6rem">';
+    h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.3rem">';
+    h+='<span style="font-weight:600">'+(ex['申請事由']||'')+'</span>';
+    h+='<span style="color:var(--gold);font-weight:700">NT$ '+Number(ex['金額']||0).toLocaleString()+'</span></div>';
+    h+='<div style="color:#888;font-size:.8rem;margin-bottom:.4rem">'+(ex['申請職稱姓名']||'')+' | '+(ex['申請時間']||'')+'</div>';
+    if(ex['詳細資訊'])h+='<div style="color:#aaa;font-size:.82rem;margin-bottom:.4rem">'+ex['詳細資訊']+'</div>';
+    h+='<div style="display:flex;justify-content:space-between;align-items:center">';
+    h+='<span style="color:'+sc+';font-size:.85rem;font-weight:600">'+(ex['核銷狀況']||'待審核')+'</span>';
+    h+='<div style="display:flex;gap:.5rem">';
+    if(ex['核銷狀況']==='待審核'&&CU&&CU.acc==='0125'){
+      h+='<button onclick="reviewEx('+ex['_row']+',&quot;核准&quot;)" style="background:rgba(76,175,80,.2);border:1px solid #4CAF50;color:#4CAF50;border-radius:5px;padding:.25rem .6rem;cursor:pointer;font-size:.78rem;font-family:sans-serif">核准</button>';
+      h+='<button onclick="reviewEx('+ex['_row']+',&quot;駁回&quot;)" style="background:rgba(220,20,60,.2);border:1px solid #DC143C;color:#DC143C;border-radius:5px;padding:.25rem .6rem;cursor:pointer;font-size:.78rem;font-family:sans-serif">駁回</button>';
+    }
+    h+='<button onclick="printExpense(this)" data-ex="'+exs+'" style="background:rgba(255,215,0,.15);border:1px solid rgba(255,215,0,.4);color:var(--gold);border-radius:5px;padding:.25rem .6rem;cursor:pointer;font-size:.78rem;font-family:sans-serif">列印</button>';
+    h+='</div></div></div>';
+  });
+  el.innerHTML=h;
+}
+
+function reviewEx(rowIndex,status){
+  if(!confirm('確定'+status+'此申請？'))return;
+  apiCall('reviewExpense',{rowIndex:rowIndex,status:status,reviewer:CU?(CU.title+' '+CU.name):''},function(){});
+  alert('已'+status);
+  setTimeout(function(){openExpenses();},800);
+}
+
+function printExpense(btn){
+  var ex=JSON.parse(btn.dataset.ex.replace(/&quot;/g,'"'));
+  var now=new Date();
+  var ds=(now.getFullYear()-1911)+'年'+(now.getMonth()+1)+'月'+now.getDate()+'日';
+  var h='<div style="border:2px solid #8B0000;padding:12mm;font-family:Noto Serif TC,serif">';
+  h+='<div style="text-align:center;font-size:18pt;font-weight:900;color:#8B0000;margin-bottom:5mm;letter-spacing:3px">員林財德宮 經費申請單</div>';
+  h+='<table style="width:100%;border-collapse:collapse;font-size:11pt">';
+  [['申請人',ex['申請職稱姓名']||''],['聯絡電話',ex['聯絡電話']||''],['申請事由',ex['申請事由']||''],['詳細資訊',ex['詳細資訊']||''],['申請金額','NT$ '+Number(ex['金額']||0).toLocaleString()+' 元整'],['申請日期',ex['申請時間']||''],['核銷狀況',ex['核銷狀況']||'待審核']].forEach(function(r){
+    h+='<tr><td style="border:1px solid #ccc;padding:3mm 4mm;background:#f9f9f9;width:70px;color:#555">'+r[0]+'</td><td style="border:1px solid #ccc;padding:3mm 4mm">'+r[1]+'</td></tr>';
+  });
+  h+='</table>';
+  h+='<div style="margin-top:15mm;display:flex;justify-content:space-around;font-size:10pt;text-align:center">';
+  h+='<div>宮主<br><br><br>江紀璿</div><div>主任委員<br><br><br>劉宸佑</div><div>財務組長<br><br><br>劉采妮</div><div>申請人<br><br><br>'+(ex['申請職稱姓名']||'')+'</div>';
+  h+='</div></div>';
+  document.getElementById('expense-print-content').innerHTML=h;
+  document.getElementById('expense-print-area').style.display='block';
+  window.print();
+  document.getElementById('expense-print-area').style.display='none';
+}
+
 showPage('page-login');
 </script>
 
@@ -625,7 +879,7 @@ showPage('page-login');
     </div>
     <div style="display:flex;gap:.6rem;margin-bottom:1rem">
       <input id="mem-search" class="inp" placeholder="搜尋姓名/電話/代號" style="margin-bottom:0;flex:1" oninput="filterMembers()">
-      <button class="btn btn-gold" onclick="openMemberForm(null)" style="margin-bottom:0;white-space:nowrap;width:auto;padding:.82rem 1rem">+ 新增</button>
+      <button class="btn btn-gold" onclick="openNewMember()" style="margin-bottom:0;white-space:nowrap;width:auto;padding:.82rem 1rem">+ 新增</button>
     </div>
     <div id="mem-list" style="max-height:60vh;overflow-y:auto"></div>
   </div>
