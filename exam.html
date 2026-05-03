@@ -67,8 +67,9 @@ h1,h2,h3{font-family:'Noto Serif TC',serif}
 .fl{display:block;margin-bottom:.3rem;color:var(--gold);font-size:.83rem;font-weight:500}
 .rq{color:var(--redl)}
 @media print{
-  body>*:not(#print-area){display:none!important}
+  body>*:not(#print-area):not(#expense-print-area){display:none!important}
   #print-area{display:block!important}
+  #expense-print-area{display:block!important}
   @page{size:A4 portrait;margin:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 }
 #print-area{display:none}
@@ -94,20 +95,8 @@ h1,h2,h3{font-family:'Noto Serif TC',serif}
   <h1>員林財德宮 &#xB7; 廟務人員系統</h1>
 </div>
 
-<div class="page active" id="page-setpw">
-  <div class="box">
-    <h2>註冊帳號</h2>
-    <p>輸入您的帳號並設定密碼</p>
-    <input class="inp" type="text" id="spw-a" placeholder="帳號（4碼）" maxlength="4">
-    <input class="inp" type="password" id="spw-p1" placeholder="設定密碼">
-    <input class="inp" type="password" id="spw-p2" placeholder="確認密碼">
-    <div class="err" id="spw-e"></div>
-    <button class="btn" onclick="setPW()">註冊並設定密碼</button>
-    <button class="btn btn-out" onclick="showPage('page-login')" style="margin-bottom:0">已有帳號，返回登入</button>
-  </div>
-</div>
 
-<div class="page" id="page-login">
+<div class="page active" id="page-login">
   <div class="box">
     <h2>廟務人員登入</h2>
     <p>請輸入您的帳號與密碼</p>
@@ -115,9 +104,6 @@ h1,h2,h3{font-family:'Noto Serif TC',serif}
     <input class="inp" type="password" id="lp" placeholder="密碼">
     <div class="err" id="le"></div>
     <button class="btn" onclick="doLogin()">登入</button>
-    <hr style="border:none;border-top:1px solid rgba(255,215,0,.15);margin:.5rem 0">
-    <p style="color:#888;font-size:.8rem;margin-bottom:.6rem">首次使用？請先註冊帳號</p>
-    <button class="btn btn-out" onclick="showPage('page-setpw')" style="margin-bottom:0">註冊帳號</button>
   </div>
 </div>
 
@@ -146,6 +132,31 @@ h1,h2,h3{font-family:'Noto Serif TC',serif}
       <span class="ic">&#x1F4C4;</span>
       <h3>受付作業登記</h3>
       <p>列印感謝狀</p>
+    </div>
+  </div>
+  <div id="admin-panel" style="display:none;margin-bottom:1.5rem">
+    <div style="color:var(--gold);font-size:.85rem;font-weight:600;margin-bottom:.8rem;padding-bottom:.5rem;border-bottom:1px solid rgba(255,215,0,.2)">管理員功能</div>
+    <div class="mgrid" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr))">
+      <div class="mc" onclick="initAdminSel();showPage('page-admin-pw')">
+        <span class="ic">&#x1F511;</span>
+        <h3>帳號密碼管理</h3>
+        <p>開通帳號 / 重設密碼</p>
+      </div>
+      <div class="mc" onclick="openMembers()">
+        <span class="ic">&#x1F464;</span>
+        <h3>信徒資料查詢</h3>
+        <p>查詢 / 新增 / 修改</p>
+      </div>
+      <div class="mc" onclick="openOrders()">
+        <span class="ic">&#x1F4CB;</span>
+        <h3>歷史訂單紀錄</h3>
+        <p>各廟務人員訂單</p>
+      </div>
+      <div class="mc" onclick="openExpenses()">
+        <span class="ic">&#x1F4B0;</span>
+        <h3>經費申請紀錄</h3>
+        <p>申請 / 審核 / 列印</p>
+      </div>
     </div>
   </div>
   <div style="text-align:center">
@@ -254,6 +265,9 @@ var USERS = {
   '3126':{name:'陳雪',title:'信徒',unit:'信徒大會',pw:null},
 };
 (function(){
+  if(!localStorage.getItem('pw_0125')){
+    localStorage.setItem('pw_0125','960110');
+  }
   Object.keys(USERS).forEach(function(a){
     var s = localStorage.getItem('pw_'+a);
     if(s) USERS[a].pw = s;
@@ -321,20 +335,6 @@ function showPage(id){
   document.getElementById(id).classList.add('active');
 }
 
-function setPW(){
-  var a=document.getElementById('spw-a').value.trim();
-  var p1=document.getElementById('spw-p1').value;
-  var p2=document.getElementById('spw-p2').value;
-  var e=document.getElementById('spw-e');
-  e.style.display='none';
-  if(!USERS[a]){e.textContent='帳號不存在';e.style.display='block';return;}
-  if(!p1){e.textContent='請輸入密碼';e.style.display='block';return;}
-  if(p1!==p2){e.textContent='兩次密碼不一致';e.style.display='block';return;}
-  USERS[a].pw=p1;
-  localStorage.setItem('pw_'+a,p1);
-  alert('密碼設定成功！');
-  showPage('page-login');
-}
 
 function doLogin(){
   var a=document.getElementById('la').value.trim();
@@ -346,7 +346,7 @@ function doLogin(){
   if(USERS[a].pw!==p){e.textContent='密碼錯誤';e.style.display='block';return;}
   CU={acc:a,name:USERS[a].name};
   document.getElementById('wname').textContent=CU.title+'　'+CU.name;
-  document.getElementById('admin-panel').style.display=a==='0125'?'block':'none';
+  var ap=document.getElementById('admin-panel'); if(ap) ap.style.display=a==='0125'?'block':'none';
   showPage('page-menu');
 }
 
@@ -394,7 +394,7 @@ function renderList(){
   var btn=document.getElementById('btn-print');
   document.getElementById('rec-count').textContent='共 '+RECS.length+' 筆';
   btn.disabled=RECS.length===0;
-  document.getElementById('btn-total').disabled=RECS.length===0;
+  var bt=document.getElementById('btn-total'); if(bt) bt.disabled=RECS.length===0;
   if(RECS.length===0) document.getElementById('rec-total').style.display='none';
   if(RECS.length===0){el.innerHTML='';return;}
   var h='';
@@ -615,5 +615,86 @@ showPage('page-login');
     </div>
   </div>
 </div>
+
+<!-- 信徒資料彈出視窗 -->
+<div id="modal-members" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:999;overflow-y:auto">
+  <div style="max-width:700px;margin:1rem auto;background:var(--card);border:2px solid rgba(255,215,0,.3);border-radius:14px;padding:1.5rem">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+      <h2 style="color:var(--gold);font-size:1.1rem">信徒資料查詢</h2>
+      <button onclick="document.getElementById('modal-members').style.display='none'" style="background:none;border:none;color:#aaa;font-size:1.5rem;cursor:pointer">&#x2715;</button>
+    </div>
+    <div style="display:flex;gap:.6rem;margin-bottom:1rem">
+      <input id="mem-search" class="inp" placeholder="搜尋姓名/電話/代號" style="margin-bottom:0;flex:1" oninput="filterMembers()">
+      <button class="btn btn-gold" onclick="openMemberForm(null)" style="margin-bottom:0;white-space:nowrap;width:auto;padding:.82rem 1rem">+ 新增</button>
+    </div>
+    <div id="mem-list" style="max-height:60vh;overflow-y:auto"></div>
+  </div>
+</div>
+
+<!-- 信徒資料編輯視窗 -->
+<div id="modal-member-edit" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.9);z-index:1000;overflow-y:auto">
+  <div style="max-width:600px;margin:1rem auto;background:var(--card);border:2px solid rgba(255,215,0,.3);border-radius:14px;padding:1.5rem">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.2rem">
+      <h2 id="edit-title" style="color:var(--gold);font-size:1.1rem">新增信徒</h2>
+      <button onclick="document.getElementById('modal-member-edit').style.display='none'" style="background:none;border:none;color:#aaa;font-size:1.5rem;cursor:pointer">&#x2715;</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.8rem" id="member-form-fields"></div>
+    <div style="display:flex;gap:.8rem;margin-top:1rem">
+      <button class="btn btn-gold" onclick="saveMemberForm()" style="margin-bottom:0;flex:2">儲存</button>
+      <button id="btn-del-member" class="btn" onclick="deleteMemberForm()" style="margin-bottom:0;flex:1;background:rgba(220,20,60,.3);border:1px solid var(--redl)">刪除</button>
+    </div>
+  </div>
+</div>
+
+<!-- 歷史訂單彈出視窗 -->
+<div id="modal-orders" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:999;overflow-y:auto">
+  <div style="max-width:700px;margin:1rem auto;background:var(--card);border:2px solid rgba(255,215,0,.3);border-radius:14px;padding:1.5rem">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+      <h2 style="color:var(--gold);font-size:1.1rem">歷史訂單紀錄</h2>
+      <button onclick="document.getElementById('modal-orders').style.display='none'" style="background:none;border:none;color:#aaa;font-size:1.5rem;cursor:pointer">&#x2715;</button>
+    </div>
+    <select id="order-filter" class="sel" onchange="filterOrders()" style="margin-bottom:1rem">
+      <option value="">全部廟務人員</option>
+    </select>
+    <div id="order-list" style="max-height:65vh;overflow-y:auto"></div>
+  </div>
+</div>
+
+<!-- 經費申請彈出視窗 -->
+<div id="modal-expenses" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:999;overflow-y:auto">
+  <div style="max-width:700px;margin:1rem auto;background:var(--card);border:2px solid rgba(255,215,0,.3);border-radius:14px;padding:1.5rem">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+      <h2 style="color:var(--gold);font-size:1.1rem">經費申請紀錄</h2>
+      <button onclick="document.getElementById('modal-expenses').style.display='none'" style="background:none;border:none;color:#aaa;font-size:1.5rem;cursor:pointer">&#x2715;</button>
+    </div>
+    <button class="btn btn-gold" onclick="openExpenseForm()" style="margin-bottom:1rem">+ 新增申請</button>
+    <div id="expense-list" style="max-height:60vh;overflow-y:auto"></div>
+  </div>
+</div>
+
+<!-- 經費申請表單 -->
+<div id="modal-expense-form" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.9);z-index:1000;overflow-y:auto">
+  <div style="max-width:500px;margin:1rem auto;background:var(--card);border:2px solid rgba(255,215,0,.3);border-radius:14px;padding:1.5rem">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.2rem">
+      <h2 style="color:var(--gold);font-size:1.1rem">經費申請</h2>
+      <button onclick="document.getElementById('modal-expense-form').style.display='none'" style="background:none;border:none;color:#aaa;font-size:1.5rem;cursor:pointer">&#x2715;</button>
+    </div>
+    <div class="fg"><label class="fl">申請人</label><input class="inp" id="ex-applicant" readonly style="margin-bottom:0;opacity:.7"></div>
+    <div class="fg"><label class="fl">聯絡電話</label><input class="inp" id="ex-phone" placeholder="聯絡電話" style="margin-bottom:0"></div>
+    <div class="fg"><label class="fl">申請事由 *</label><input class="inp" id="ex-reason" placeholder="請輸入申請事由" style="margin-bottom:0"></div>
+    <div class="fg"><label class="fl">詳細資訊</label><textarea class="ea" id="ex-detail" placeholder="詳細說明" style="min-height:80px"></textarea></div>
+    <div class="fg"><label class="fl">金額 *</label><input class="inp" type="number" id="ex-amount" placeholder="申請金額（元）" style="margin-bottom:0"></div>
+    <div style="display:flex;gap:.8rem;margin-top:1rem">
+      <button class="btn" onclick="submitExpense()" style="margin-bottom:0;flex:1">送出申請</button>
+    </div>
+  </div>
+</div>
+
+<!-- 列印經費申請 -->
+<div id="expense-print-area" style="display:none">
+  <div id="expense-print-content" style="font-family:'Noto Serif TC',serif;padding:15mm;background:#fff;color:#111">
+  </div>
+</div>
+
 </body>
 </html>
