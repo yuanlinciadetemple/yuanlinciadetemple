@@ -266,15 +266,7 @@ var USERS = {
   '3026':{name:'劉文試',title:'信徒',unit:'信徒大會',pw:null},
   '3126':{name:'陳雪',title:'信徒',unit:'信徒大會',pw:null},
 };
-(function(){
-  if(!localStorage.getItem('pw_0125')){
-    localStorage.setItem('pw_0125','960110');
-  }
-  Object.keys(USERS).forEach(function(a){
-    var s = localStorage.getItem('pw_'+a);
-    if(s) USERS[a].pw = s;
-  });
-})();
+// 密碼改存 Google 試算表，不再用 localStorage
 
 var CU=null, CE=null, CQ=0, ANS=[], ET='', RECS=[];
 
@@ -296,16 +288,19 @@ function onSelectAcc(){
   var pwBox=document.getElementById('admin-set-pw-box');
   if(!acc){infoEl.style.display='none';pwBox.style.display='none';return;}
   var u=USERS[acc];
-  var hasPW=!!localStorage.getItem('pw_'+acc);
   document.getElementById('admin-info-text').textContent=u.title+' '+u.name+'（'+acc+'）';
-  document.getElementById('admin-pw-status').innerHTML=hasPW
-    ?'<span style="color:#4CAF50">✅ 已開通</span>'
-    :'<span style="color:var(--redl)">❌ 尚未開通</span>';
+  document.getElementById('admin-pw-status').innerHTML='<span style="color:#FFD700">查詢中...</span>';
   infoEl.style.display='block';
   pwBox.style.display='block';
   document.getElementById('admin-pw1').value='';
   document.getElementById('admin-pw2').value='';
   document.getElementById('admin-err').style.display='none';
+  // 從試算表查詢開通狀態
+  apiCall('getPassword',{code:acc},function(pw){
+    document.getElementById('admin-pw-status').innerHTML=pw
+      ?'<span style="color:#4CAF50">✅ 已開通</span>'
+      :'<span style="color:var(--redl)">❌ 尚未開通</span>';
+  });
 }
 
 function adminSetPW(){
@@ -317,18 +312,19 @@ function adminSetPW(){
   if(!acc){e.textContent='請先選擇人員';e.style.display='block';return;}
   if(!p1){e.textContent='請輸入密碼';e.style.display='block';return;}
   if(p1!==p2){e.textContent='兩次密碼不一致';e.style.display='block';return;}
-  localStorage.setItem('pw_'+acc,p1);
-  USERS[acc].pw=p1;
-  alert('✅ '+USERS[acc].title+' '+USERS[acc].name+' 的密碼已設定完成！');
-  onSelectAcc();
+  // 存到 Google 試算表
+  apiCall('setPassword',{code:acc,pw:p1},function(res){
+    alert('✅ '+USERS[acc].title+' '+USERS[acc].name+' 的密碼已開通！');
+    onSelectAcc();
+  });
+  alert('✅ 設定中，請稍候...');
 }
 
 function adminClearPW(){
   var acc=document.getElementById('admin-sel-acc').value;
   if(!acc) return;
   if(!confirm('確定要清除 '+USERS[acc].name+' 的密碼（停用帳號）？')) return;
-  localStorage.removeItem('pw_'+acc);
-  USERS[acc].pw=null;
+  apiCall('clearPassword',{code:acc},function(){});
   alert('帳號已停用');
   onSelectAcc();
 }
@@ -375,12 +371,18 @@ function doLogin(){
   var e=document.getElementById('le');
   e.style.display='none';
   if(!USERS[a]){e.textContent='帳號不存在';e.style.display='block';return;}
-  if(!USERS[a].pw){e.textContent='尚未設定密碼';e.style.display='block';return;}
-  if(USERS[a].pw!==p){e.textContent='密碼錯誤';e.style.display='block';return;}
-  CU={acc:a,name:USERS[a].name,title:USERS[a].title,unit:USERS[a].unit};
-  document.getElementById('wname').textContent=CU.title+'　'+CU.name;
-  var ap=document.getElementById('admin-panel'); if(ap) ap.style.display=a==='0125'?'block':'none';
-  showPage('page-menu');
+  if(!p){e.textContent='請輸入密碼';e.style.display='block';return;}
+  e.textContent='驗證中...';e.style.display='block';e.style.color='#FFD700';
+  apiCall('getPassword',{code:a},function(pw){
+    e.style.display='none';
+    if(!pw){e.textContent='帳號尚未開通，請聯繫宮主';e.style.display='block';e.style.color='#DC143C';return;}
+    if(String(pw)!==String(p)){e.textContent='密碼錯誤';e.style.display='block';e.style.color='#DC143C';return;}
+    CU={acc:a,name:USERS[a].name,title:USERS[a].title,unit:USERS[a].unit};
+    document.getElementById('wname').textContent=CU.title+'　'+CU.name;
+    var ap=document.getElementById('admin-panel');
+    if(ap) ap.style.display=a==='0125'?'block':'none';
+    showPage('page-menu');
+  });
 }
 
 function logout(){
