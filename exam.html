@@ -142,17 +142,22 @@ h1,h2,h3{font-family:'Noto Serif TC',serif}
         <h3>帳號密碼管理</h3>
         <p>開通帳號 / 重設密碼</p>
       </div>
-      <div class="mc" onclick="openMembers()">
+      <div class="mc" onclick="openPermManager()">
+        <span class="ic">&#x1F6E1;</span>
+        <h3>權限管理</h3>
+        <p>設定各人員權限</p>
+      </div>
+      <div class="mc" data-perm="members" onclick="openMembers()">
         <span class="ic">&#x1F464;</span>
         <h3>信徒資料查詢</h3>
         <p>查詢 / 新增 / 修改</p>
       </div>
-      <div class="mc" onclick="openOrders()">
+      <div class="mc" data-perm="orders" onclick="openOrders()">
         <span class="ic">&#x1F4CB;</span>
         <h3>歷史訂單紀錄</h3>
         <p>各廟務人員訂單</p>
       </div>
-      <div class="mc" onclick="openExpenses()">
+      <div class="mc" data-perm="expenses" onclick="openExpenses()">
         <span class="ic">&#x1F4B0;</span>
         <h3>經費申請紀錄</h3>
         <p>申請 / 審核 / 列印</p>
@@ -382,11 +387,24 @@ function doLogin(){
     if(pwStr !== pStr && pwStr !== pStr.replace(/^0+/,'') && ('0'+pwStr) !== pStr && pwStr !== ('0'+pStr)){
       e.textContent='密碼錯誤';e.style.display='block';e.style.color='#DC143C';return;
     }
-    CU={acc:a,name:USERS[a].name,title:USERS[a].title,unit:USERS[a].unit};
+    CU={acc:a,name:USERS[a].name,title:USERS[a].title,unit:USERS[a].unit,perms:{}};
     document.getElementById('wname').textContent=CU.title+'　'+CU.name;
-    var ap=document.getElementById('admin-panel');
-    if(ap) ap.style.display=a==='0125'?'block':'none';
-    showPage('page-menu');
+    // 載入權限
+    if(a==='0125'){
+      CU.perms={members:true,accounts:true,orders:true,expenses:true};
+      var ap=document.getElementById('admin-panel');
+      if(ap) ap.style.display='block';
+      showPage('page-menu');
+      setTimeout(updateMenuByPerms,100);
+    } else {
+      apiCall('getPermissions',{code:a},function(perms){
+        CU.perms=perms||{};
+        var ap=document.getElementById('admin-panel');
+        if(ap) ap.style.display='none';
+        showPage('page-menu');
+        updateMenuByPerms();
+      });
+    }
   });
 }
 
@@ -615,6 +633,60 @@ function sendR(score,pass,det){
 }
 
 function retryExam(){startExam(window._le||ET);}
+
+// ── 權限控制 ──
+function updateMenuByPerms(){
+  if(!CU) return;
+  var perms=CU.perms||{};
+  // 顯示/隱藏各功能卡片
+  var cards=document.querySelectorAll('.mc[data-perm]');
+  cards.forEach(function(card){
+    var p=card.dataset.perm;
+    card.style.display=(p==='all'||perms[p])?'block':'none';
+  });
+}
+
+// ── 權限管理頁面 ──
+function openPermManager(){
+  document.getElementById('modal-perms').style.display='block';
+  document.getElementById('perm-list').innerHTML='<div style="text-align:center;color:#aaa;padding:2rem">載入中...</div>';
+  apiCall('getAllPermissions',{},function(data){
+    var permMap={};
+    (data||[]).forEach(function(p){ permMap[p.code]=p; });
+    var h='';
+    Object.keys(USERS).forEach(function(acc){
+      if(acc==='0125') return;
+      var p=permMap[acc]||{members:false,accounts:false,orders:false,expenses:false};
+      var u=USERS[acc];
+      h+='<div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,215,0,.12);border-radius:8px;padding:.9rem 1rem;margin-bottom:.6rem">';
+      h+='<div style="font-weight:600;margin-bottom:.6rem">['+acc+'] '+u.title+' '+u.name+'</div>';
+      h+='<div style="display:flex;flex-wrap:wrap;gap:.5rem">';
+      var perms=[
+        ['members','信徒資料'],['orders','歷史訂單'],
+        ['expenses','經費審核']
+      ];
+      perms.forEach(function(perm){
+        var checked=p[perm[0]]?'checked':'';
+        h+='<label style="display:flex;align-items:center;gap:.3rem;cursor:pointer;font-size:.85rem;background:rgba(255,215,0,.06);padding:.3rem .7rem;border-radius:5px;border:1px solid rgba(255,215,0,.2)">';
+        h+='<input type="checkbox" '+checked+' data-acc="'+acc+'" data-perm="'+perm[0]+'" onchange="savePermChange(this)">';
+        h+=perm[1]+'</label>';
+      });
+      h+='</div></div>';
+    });
+    document.getElementById('perm-list').innerHTML=h||'<div style="color:#aaa;text-align:center;padding:2rem">無資料</div>';
+  });
+}
+
+function savePermChange(el){
+  var acc=el.dataset.acc;
+  var permName=el.dataset.perm;
+  // 收集該帳號所有勾選
+  var checkboxes=document.querySelectorAll('input[data-acc="'+acc+'"]');
+  var perms={members:false,orders:false,expenses:false};
+  checkboxes.forEach(function(cb){ perms[cb.dataset.perm]=cb.checked; });
+  apiCall('setPermissions',{code:acc,perms:perms},function(){});
+}
+
 
 // ── 信徒資料 ──
 var _editMember = null;
@@ -954,6 +1026,18 @@ showPage('page-login');
 <!-- 列印經費申請 -->
 <div id="expense-print-area" style="display:none">
   <div id="expense-print-content" style="font-family:'Noto Serif TC',serif;padding:15mm;background:#fff;color:#111">
+  </div>
+</div>
+
+
+<!-- 權限管理彈出視窗 -->
+<div id="modal-perms" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:999;overflow-y:auto">
+  <div style="max-width:600px;margin:1rem auto;background:var(--card);border:2px solid rgba(255,215,0,.3);border-radius:14px;padding:1.5rem">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+      <h2 style="color:var(--gold);font-size:1.1rem">權限管理</h2>
+      <button onclick="document.getElementById('modal-perms').style.display='none'" style="background:none;border:none;color:#aaa;font-size:1.5rem;cursor:pointer">&#x2715;</button>
+    </div>
+    <div id="perm-list" style="max-height:70vh;overflow-y:auto"></div>
   </div>
 </div>
 
