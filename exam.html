@@ -376,7 +376,12 @@ function doLogin(){
   apiCall('getPassword',{code:a},function(pw){
     e.style.display='none';
     if(!pw){e.textContent='帳號尚未開通，請聯繫宮主';e.style.display='block';e.style.color='#DC143C';return;}
-    if(String(pw)!==String(p)){e.textContent='密碼錯誤';e.style.display='block';e.style.color='#DC143C';return;}
+    // 密碼比對（支援前導零）
+    var pwStr = String(pw);
+    var pStr = String(p);
+    if(pwStr !== pStr && pwStr !== pStr.replace(/^0+/,'') && ('0'+pwStr) !== pStr && pwStr !== ('0'+pStr)){
+      e.textContent='密碼錯誤';e.style.display='block';e.style.color='#DC143C';return;
+    }
     CU={acc:a,name:USERS[a].name,title:USERS[a].title,unit:USERS[a].unit};
     document.getElementById('wname').textContent=CU.title+'　'+CU.name;
     var ap=document.getElementById('admin-panel');
