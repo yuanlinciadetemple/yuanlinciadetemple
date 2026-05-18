@@ -840,16 +840,18 @@ function checkoutShop(){
   var note=document.getElementById('shop-note').value.trim();
   var total=_cart.reduce(function(s,i){return s+i.price*i.qty;},0);
   if(!confirm('確認結帳？\n客戶：'+cname+'\n金額：NT$ '+total+'\n付款：'+paytype))return;
+
   var order={
     staffCode:CU?CU.acc:'',
     staffName:CU?(CU.title+' '+CU.name):'',
     customerName:cname,
     customerType:ctype,
-    items:_cart,
+    items:JSON.parse(JSON.stringify(_cart)),
     total:total,
     payType:paytype,
     note:note
   };
+
   // CDTB 付款：扣點
   if(paytype==='CDTB'&&CU){
     var cdtbNeeded=total*4;
@@ -859,12 +861,55 @@ function checkoutShop(){
       document.getElementById('cdtb-display').textContent=_myPoints;
     });
   }
+
   apiCall('saveOrder2',{order:order},function(){});
-  alert('✅ 結帳成功！NT$ '+total);
+
+  // 列印感謝狀
+  printShopReceipt(order);
+
   _cart=[];
   updateCart();
   document.getElementById('shop-cname').value='';
   document.getElementById('shop-note').value='';
+}
+
+function printShopReceipt(order){
+  var now=new Date();
+  var ds=(now.getFullYear()-1911)+'年'+(now.getMonth()+1)+'月'+now.getDate()+'日';
+  var op=order.staffName||'--';
+
+  function makeSheet(){
+    var h='<div style="position:relative">';
+    // 印章
+    var sealEl=document.querySelector('img[src^="data:image"]');
+    if(sealEl){
+      h+='<img src="'+sealEl.src+'" style="width:80px;height:80px;object-fit:contain;opacity:.7;position:absolute;top:-8mm;left:50%;transform:translateX(-50%);z-index:2;pointer-events:none">';
+    }
+    h+='<div class="rtitle" style="position:relative;z-index:1">員林財德宮感謝狀</div>';
+    h+='<div class="rsub">天官五路武財神　誠心祈福　財運亨通</div>';
+    h+='<div class="rrow"><span class="rlabel">芳　　名</span><span class="rval">'+order.customerName+'</span></div>';
+    h+='<div class="rrow"><span class="rlabel">客戶身份</span><span class="rval">'+order.customerType+'</span></div>';
+    // 商品明細
+    var itemStr=order.items.map(function(i){return i.name+' x'+i.qty+' NT$'+(i.price*i.qty);}).join('、');
+    h+='<div class="rrow"><span class="rlabel">購買品項</span><span class="rval" style="font-size:10pt">'+itemStr+'</span></div>';
+    h+='<div class="rrow"><span class="rlabel">付款方式</span><span class="rval">'+order.payType+'</span></div>';
+    h+='<div class="rrow"><span class="rlabel">金　　額</span><span class="rval">新台幣　'+Number(order.total).toLocaleString()+'　元整</span></div>';
+    h+='<div class="rrow"><span class="rlabel">日　　期</span><span class="rval">中華民國　'+ds+'</span></div>';
+    if(order.note)h+='<div class="rrow"><span class="rlabel">備　　註</span><span class="rval">'+order.note+'</span></div>';
+    h+='<div class="rfoot">';
+    h+='<div class="rfoot-sigs"><span class="rsig">宮主　江紀璿　</span><span class="rsig">主任委員　劉宸佑　</span><span class="rsig">管理委員會一同致謝</span></div>';
+    h+='<div class="rfoot-bottom"><span class="rop">經辦人：'+op+'</span></div>';
+    h+='</div></div>';
+    return h;
+  }
+
+  document.getElementById('print-sheets').innerHTML=
+    '<div class="rsheet">'+makeSheet()+'</div>'+
+    '<div class="cutline">✂ 請沿虛線剪開 ✂</div>'+
+    '<div class="rsheet">'+makeSheet()+'</div>';
+  document.getElementById('print-area').style.display='block';
+  window.print();
+  document.getElementById('print-area').style.display='none';
 }
 
 // 商品管理
